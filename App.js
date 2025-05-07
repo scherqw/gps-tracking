@@ -4,14 +4,12 @@ import { StyleSheet, View, Button, TouchableHighlight, Text } from 'react-native
 import * as Location from 'expo-location';
 
 export default function App() {
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 0,
-    longitude: 0,
-    latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
-  })
 
-  const [displayCoords, setDisplayCoords] = useState('');
+  const [locationData, setLocationData] = useState({
+    current: null,
+    previous: null,
+  });
+
 
   const userLocation = async () => {
     let {status} = await Location.requestForegroundPermissionsAsync();
@@ -19,6 +17,20 @@ export default function App() {
     if (status !== "granted"){
       setErrorMsg("Permission to access location was denied")
     }
+
+    const init_loc = await Location.getCurrentPositionAsync({});
+    
+    setLocationData({
+      current: {
+        latitude: init_loc.coords.latitude,
+        longitude: init_loc.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+
+      previous: null,
+    })
+
     await Location.watchPositionAsync({
       accuracy: Location.Accuracy.High,
       timeInterval: 1000,
@@ -26,35 +38,53 @@ export default function App() {
     },
 
     (location) => {
-      setMapRegion({
+
+      const updatedData = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
+      };
+
+      setLocationData((prevData) => {
+        return {
+          previous: prevData.current,
+          current: updatedData,
+        }
       });
 
-      setDisplayCoords(`Latitude: ${location.coords.latitude}\nLongitude: ${location.coords.longitude}`)
     }
   );
 };
+
+  // Distance Calculation:
+  // Option 1:
+  // Using Haversine formula:
+  // d = 2r arcsin(sqrt(sin²((lat2-lat1)/2) + cos(lat1)cos(lat2)sin²((lon2-lon1)/2)))
+  // d : distance between two points in km
+  // r : radius of the Earth (6371km)
+  // lat1, lon1 : latitude and longitude of the first point
+  // lat2, lon2 : latitude and longitude of the second point
+  // Option 2:
+  // Geolib library
 
   useEffect(() => {
     userLocation();
   }, []);
 
+
   return (
     <View style={styles.container}>
       <MapView style={styles.map} 
-        region={mapRegion}
+        region={locationData.current}
       >
-       <Marker coordinate={mapRegion} title='Current Location'></Marker>
+       <Marker coordinate={locationData.current} title='Current Location'></Marker>
       </MapView>
       {/* <TouchableHighlight onPress={userLocation}>
         <View style={styles.button}>
           <Text>Get Location</Text>
         </View>
       </TouchableHighlight> */}
-      <Text style={styles.lati_longi}>{displayCoords}</Text>
       {/* console.log(location.coords.latitude, location.coords.longitude) */}
     </View>
   );
