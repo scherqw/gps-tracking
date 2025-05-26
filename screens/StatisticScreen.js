@@ -1,3 +1,6 @@
+//display trip history from context
+//show total stats over time
+//using trip data
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
